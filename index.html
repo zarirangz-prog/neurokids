@@ -65,6 +65,18 @@ tr.nk-det>td{background:var(--raise);padding:12px 14px 14px;white-space:normal}
 .nk-exp{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 .nk-exp>div{border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .nk-exp p{margin:4px 0 10px;font-size:13px}
+
+#nk-me .nk-me-b{display:flex;gap:6px;flex-wrap:wrap}
+#nk-modal{position:fixed;inset:0;z-index:1001;background:var(--scrim);display:grid;place-items:center;padding:16px}
+#nk-modal[hidden]{display:none}
+#nk-modal .nk-btn.ghost{margin-top:-4px}
+.nk-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.nk-form label{display:grid;gap:5px;font-size:13px;color:var(--ink-2);font-weight:500}
+.nk-form input,.nk-form select{font:inherit;font-size:14px;height:36px;padding:0 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);width:100%}
+.nk-pwbox{display:flex;gap:6px}.nk-pwbox input{flex:1;font-family:ui-monospace,Consolas,monospace}
+.nk-pwrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.nk-pwi{width:180px;font-family:ui-monospace,Consolas,monospace;border-color:var(--line-2)!important;background:var(--surface)!important}
+.nk-cred{border-color:var(--in)}
+.nk-credtx{font-family:ui-monospace,Consolas,monospace;font-size:13.5px;background:var(--sunk);border-radius:var(--r-sm);padding:12px 14px;margin:0 0 12px;white-space:pre-wrap;user-select:all}
 </style></head><body>
 <title>NEURO KIDS · финансовая система</title>
 <meta name="robots" content="noindex,nofollow">
@@ -628,8 +640,9 @@ table.fott tr.off td{color:var(--muted);text-decoration:line-through}table.fott 
    Если оставить пустыми, система спросит их при первом открытии.
    ===================================================================== */
 const NK_CONFIG = {
-  url: '',      // например: 'https://abcdefghijk.supabase.co'
-  anonKey: ''   // длинная строка, начинается с eyJ...
+  url: 'https://fjswiigbwnmtngzeeump.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqc3dpaWdid25tdG5nemVldW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU2MjY4ODEsImV4cCI6MjExMTIwMjg4MX0.kunl6nChPcC7J2PpYcrNjGtwGbyW7WAWSvSOn9GRGcQ',
+  allowSignup: false  // true — показывать на входе кнопку «Запросить доступ»
 };
 
 /* ===================================================================== */
@@ -646,6 +659,8 @@ const NKB=window.NKB={sb:null,session:null,me:null,levels:{},secOf:{},cache:{},l
 NKB.ready=new Promise(r=>NKB._ok=r);
 
 const $id=id=>document.getElementById(id);
+NKB.loginEmail=v=>{v=String(v||'').trim().toLowerCase();return v.includes('@')?v:v+'@nk.local'};
+NKB.loginOf=e=>String(e||'').replace(/@nk\.local$/i,'');
 const escH=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
 const rid=()=>{const a='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',r=crypto.getRandomValues(new Uint8Array(20));let s='';for(const b of r)s+=a[b%62];return s};
@@ -673,17 +688,18 @@ function setupScreen(){gate(`<h1>Подключение к базе</h1><p class
     try{localStorage.setItem('nk_cfg',JSON.stringify({url,anonKey:key}))}catch(x){}location.reload()}}
 
 function loginScreen(mode,msg){
-  const tabs=`<div class="nk-tabs"><button type="button" data-m="in" class="${mode==='in'?'on':''}">Вход</button><button type="button" data-m="up" class="${mode==='up'?'on':''}">Запросить доступ</button></div>`;
-  if(mode==='reset')gate(`<h1>Восстановление пароля</h1><p class="nk-sub">Пришлём на почту ссылку для нового пароля.</p><form id="nk-f"><label>Почта<input name="email" type="email" required autocomplete="email"></label><button class="nk-btn">Отправить ссылку</button><div class="nk-msg"></div></form><p class="nk-foot"><a href="#" data-m="in">Вернуться ко входу</a></p>`);
+  if(mode==='up'&&!NK_CONFIG.allowSignup)mode='in';
+  const tabs=!NK_CONFIG.allowSignup?'':`<div class="nk-tabs"><button type="button" data-m="in" class="${mode==='in'?'on':''}">Вход</button><button type="button" data-m="up" class="${mode==='up'?'on':''}">Запросить доступ</button></div>`;
+  if(mode==='reset')gate(`<h1>Забыли пароль?</h1><p>Попросите администратора системы задать вам новый пароль: это делается в разделе «Пользователи и доступы» за минуту.</p><p class="nk-sub">Если вы входите по настоящей почте, можно получить ссылку для сброса:</p><form id="nk-f"><label>Почта<input name="email" type="email" required autocomplete="email"></label><button class="nk-btn ghost">Отправить ссылку на почту</button><div class="nk-msg"></div></form><p class="nk-foot"><a href="#" data-m="in">Вернуться ко входу</a></p>`);
   else if(mode==='newpass')gate(`<h1>Новый пароль</h1><form id="nk-f"><label>Новый пароль<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><button class="nk-btn">Сохранить пароль</button><div class="nk-msg"></div></form>`);
   else if(mode==='up')gate(`<h1>Вход в систему</h1><p class="nk-sub">Финансовая система · закрытый доступ</p>${tabs}<form id="nk-f"><label>Имя и фамилия<input name="name" required autocomplete="name"></label><label>Рабочая почта<input name="email" type="email" required autocomplete="email"></label><label>Пароль (от 8 символов)<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><button class="nk-btn">Отправить запрос</button><div class="nk-msg"></div></form><p class="nk-foot">После регистрации администратор откроет вам нужные разделы.</p>`);
-  else gate(`<h1>Вход в систему</h1><p class="nk-sub">Финансовая система · закрытый доступ</p>${tabs}<form id="nk-f"><label>Почта<input name="email" type="email" required autocomplete="username"></label><label>Пароль<input name="password" type="password" required autocomplete="current-password"></label><button class="nk-btn">Войти</button><div class="nk-msg"></div></form><p class="nk-foot"><a href="#" data-m="reset">Забыли пароль?</a></p>`);
+  else gate(`<h1>Вход в систему</h1><p class="nk-sub">Финансовая система · закрытый доступ</p>${tabs}<form id="nk-f"><label>Логин<input name="email" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>Пароль<input name="password" type="password" required autocomplete="current-password"></label><button class="nk-btn">Войти</button><div class="nk-msg"></div></form><p class="nk-foot">Логин и пароль выдаёт администратор системы · <a href="#" data-m="reset">Забыли пароль?</a></p>`);
   if(msg)gmsg(msg.t,msg.bad);
   document.querySelectorAll('#nk-gate [data-m]').forEach(b=>b.onclick=e=>{e.preventDefault();loginScreen(b.dataset.m)});
   $id('nk-f').onsubmit=async e=>{e.preventDefault();const f=e.target,b=f.querySelector('button');busy(b,true);gmsg('');
     try{const sb=NKB.sb;
-      if(mode==='in'){const {error}=await sb.auth.signInWithPassword({email:f.email.value.trim(),password:f.password.value});
-        if(error)throw new Error(/invalid/i.test(error.message)?'Неверная почта или пароль':/confirm/i.test(error.message)?'Подтвердите почту: откройте письмо от Supabase и нажмите ссылку':error.message)}
+      if(mode==='in'){const {error}=await sb.auth.signInWithPassword({email:NKB.loginEmail(f.email.value),password:f.password.value});
+        if(error)throw new Error(/invalid/i.test(error.message)?'Неверный логин или пароль':/confirm/i.test(error.message)?'Подтвердите почту: откройте письмо от Supabase и нажмите ссылку':error.message)}
       else if(mode==='up'){const {data,error}=await sb.auth.signUp({email:f.email.value.trim(),password:f.password.value,options:{data:{full_name:f.name.value.trim()},emailRedirectTo:location.href.split('#')[0]}});
         if(error)throw new Error(/registered|exists/i.test(error.message)?'Такая почта уже зарегистрирована — войдите':error.message);
         if(!data.session){busy(b,false);return loginScreen('in',{t:'Запрос отправлен. Подтвердите почту по ссылке из письма, затем войдите. Доступ откроет администратор.'})}}
@@ -692,7 +708,7 @@ function loginScreen(mode,msg){
     }catch(x){gmsg(x.message||'Не получилось. Попробуйте ещё раз.',true)}busy(b,false)}}
 
 function waitScreen(me){gate(`<h1>${me&&me._expired?'Срок доступа закончился':'Доступ пока закрыт'}</h1>
-  <p class="nk-sub">${escH(me&&me.email||'')}</p><p>${me&&me._expired?'Срок вашего доступа закончился.':'Администратор ещё не открыл вам доступ или закрыл его.'} Как только доступ откроют, эта страница сама пустит вас в систему.</p>
+  <p class="nk-sub">${escH(NKB.loginOf(me&&me.email))}</p><p>${me&&me._expired?'Срок вашего доступа закончился.':'Администратор ещё не открыл вам доступ или закрыл его.'} Как только доступ откроют, эта страница сама пустит вас в систему.</p>
   <button class="nk-btn ghost" id="nk-out">Выйти</button>`);$id('nk-out').onclick=()=>logout()}
 
 /* ---------- запуск ---------- */
@@ -4637,7 +4653,7 @@ render=function(){
 };
 function meChip(){const side=document.querySelector('.side');if(!side||!NKB.me)return;let c=document.getElementById('nk-me');
   if(!c){c=document.createElement('div');c.id='nk-me';side.appendChild(c)}
-  const html=`<div class="nk-me-n" title="${H(NKB.me.email)}">${H(NKB.me.full_name||NKB.me.email)}</div><div class="nk-me-r">${H(NKB.me.role_name||'')}</div><button class="btn sm" data-nkact="logout">Выйти</button>`;
+  const html=`<div class="nk-me-n" title="${H(NKB.me.email)}">${H(NKB.me.full_name||NKB.me.email)}</div><div class="nk-me-r">${H(NKB.me.role_name||'')} · ${H(NKB.loginOf(NKB.me.email))}</div><div class="nk-me-b"><button class="btn sm" data-nkact="mypw">Сменить пароль</button><button class="btn sm" data-nkact="logout">Выйти</button></div>`;
   if(c.dataset.h!==html){c.innerHTML=html;c.dataset.h=html}}
 
 /* ---------- маршрутизация новых разделов ---------- */
@@ -4699,19 +4715,30 @@ function vAccess(){if(!NKB.me.is_admin)return `<section class="panel"><div class
         <option value="" ${e.ov?'':'selected'}>${rl.is_admin?'правка':'по роли: '+LVLS[def]}</option>${rl.is_admin?'':['none','read','write'].map(l=>`<option value="${l}" ${e.ov===l?'selected':''}>${LVLS[l]}</option>`).join('')}</select></td>`}).join('');
     const st_=isOn(u)?'<span class="pill fact">открыт</span>':u.is_active?'<span class="pill over">срок истёк</span>':'<span class="pill crit">закрыт</span>';
     return `<tr class="${isOn(u)?'':'nk-off'}"><td style="min-width:210px;white-space:normal"><div class="nk-u">${onl.has(u.id)?'<i class="dot good" title="сейчас в системе"></i>':''}<input class="nk-in" value="${H(u.full_name||'')}" placeholder="Имя" data-nkch="uname" data-id="${u.id}" ${lock&&!self?'disabled':''}></div>
-       <div class="mut" style="font-size:12px">${H(u.email)}${self?' · это вы':''}</div><input class="nk-in sm" value="${H(u.position||'')}" placeholder="должность" data-nkch="upos" data-id="${u.id}" ${lock&&!self?'disabled':''}></td>
+       <div class="mut" style="font-size:12px">логин: <b>${H(NKB.loginOf(u.email))}</b>${self?' · это вы':''}</div><input class="nk-in sm" value="${H(u.position||'')}" placeholder="должность" data-nkch="upos" data-id="${u.id}" ${lock&&!self?'disabled':''}></td>
       <td><select data-nkch="role" data-id="${u.id}" ${dis}>${roleOpts(u.role)}</select></td>
       <td>${st_}<div style="margin-top:6px"><button class="btn sm" data-nkact="toggle" data-id="${u.id}" ${dis}>${u.is_active?'Закрыть доступ':'Открыть доступ'}</button></div></td>
       <td><input type="date" class="nk-in" value="${u.access_until||''}" data-nkch="until" data-id="${u.id}" ${dis} title="пусто — бессрочно"></td>
       ${cells}
       <td class="mut" style="font-size:12px;white-space:normal">${onl.has(u.id)?'<b style="color:var(--in)">в системе</b>':ago(u.last_seen_at)}${u.last_tab?'<br>'+H(tabNm(u.last_tab)):''}</td>
-      <td><button class="btn sm" data-nkact="userlog" data-id="${u.id}">Действия</button></td></tr>`}).join('');
+      <td style="white-space:nowrap"><button class="btn sm" data-nkact="userlog" data-id="${u.id}">Действия</button> <button class="btn sm" data-nkact="pwopen" data-id="${u.id}" ${lock&&!self?'disabled':''}>Пароль</button></td></tr>`+
+      (NKS.pwFor===u.id?`<tr class="nk-det"><td colspan="${6+secs.length}"><div class="nk-pwrow"><b>Новый пароль для ${H(u.full_name||NKB.loginOf(u.email))}</b><input class="nk-in nk-pwi" id="nk-pw-${u.id}" value="${H(NKS.pwDraft||'')}" autocomplete="off" spellcheck="false"><button class="btn sm" data-nkact="pwgen" data-id="${u.id}">Придумать</button><button class="btn sm pri" data-nkact="pwsave" data-id="${u.id}">Сохранить</button><button class="btn sm" data-nkact="pwopen" data-id="${u.id}">Отмена</button></div></td></tr>`:'')}).join('');
   const matrix=`<div class="tbl-wrap"><table><thead><tr><th>Роль<i class="xbtn" hidden></i></th>${secs.map(s=>`<th>${H(SHORT[s.id]||s.name)}</th>`).join('')}<th>Пользователи и журнал</th></tr></thead><tbody>
     ${(NKS.roles||[]).map(r=>`<tr><td><b style="font-weight:600">${H(r.name)}</b><div class="mut" style="font-size:12px;white-space:normal;max-width:260px">${H(r.description||'')}</div></td>${secs.map(s=>{const l=r.is_admin?'write':(r.defaults||{})[s.id]||'none';return `<td><span class="nk-lvp lv-${l}">${LVLS[l]}</span></td>`}).join('')}<td>${r.is_admin?'<span class="nk-lvp lv-write">да</span>':'<span class="nk-lvp lv-none">нет</span>'}</td></tr>`).join('')}</tbody></table></div>`;
   const act=U.filter(isOn).length;
-  return `${pendHtml}<section class="panel"><div class="panel-h"><div><h2>Пользователи · ${U.length}</h2><div class="note">доступ открыт у ${act} · права по разделам задаются ролью, любую ячейку можно поменять вручную</div></div></div>
+  const roleSel=`<select id="nk-nu-role">${(NKS.roles||[]).filter(r=>r.id!=='owner'||NKB.me.is_owner).map(r=>`<option value="${r.id}" ${r.id==='viewer'?'selected':''}>${H(r.name)}</option>`).join('')}</select>`;
+  const cred=NKS.cred?`<section class="panel nk-cred"><div class="panel-h"><div><h2>${NKS.cred.reset?'Новый пароль задан':'Сотрудник добавлен'}</h2><div class="note">отправьте эти данные сотруднику — пароль больше нигде не показывается</div></div><div class="sp"></div><button class="btn sm" data-nkact="credclose">Закрыть</button></div>
+     <pre class="nk-credtx" id="nk-credtx">${H(credText(NKS.cred))}</pre><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm pri" data-nkact="credcopy">Скопировать для отправки</button></div></section>`:'';
+  const add=NKS.addOpen?`<section class="panel"><div class="panel-h"><div><h2>Новый сотрудник</h2><div class="note">логин — латиницей без пробелов, например zarina или z.kadirova; можно указать и настоящую почту</div></div></div>
+     <div class="nk-form"><label>Имя и фамилия<input id="nk-nu-name" autocomplete="off"></label><label>Должность<input id="nk-nu-pos" autocomplete="off"></label>
+      <label>Логин<input id="nk-nu-login" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="zarina"></label>
+      <label>Пароль<span class="nk-pwbox"><input id="nk-nu-pw" autocomplete="off" spellcheck="false" value="${H(NKS.nuPw||'')}"><button class="btn sm" data-nkact="nugen">Придумать</button></span></label>
+      <label>Роль${roleSel}</label><label>Доступ до <span class="mut">(необязательно)</span><input type="date" id="nk-nu-until"></label></div>
+     <div class="nk-msg bad" id="nk-nu-err"></div>
+     <div style="display:flex;gap:8px;margin-top:12px"><button class="btn pri" data-nkact="nusave">Создать и открыть доступ</button><button class="btn" data-nkact="nuopen">Отмена</button></div></section>`:'';
+  return `${cred}${add}${pendHtml}<section class="panel"><div class="panel-h"><div><h2>Пользователи · ${U.length}</h2><div class="note">доступ открыт у ${act} · права по разделам задаются ролью, любую ячейку можно поменять вручную</div></div><div class="sp"></div>${NKS.addOpen?'':'<button class="btn sm pri" data-nkact="nuopen">+ Добавить сотрудника</button>'}</div>
     <div class="tbl-wrap"><table class="nk-ut"><thead><tr><th>Сотрудник</th><th>Роль</th><th>Доступ</th><th>Доступ до</th>${secs.map(s=>`<th title="${H(s.name)}">${H(SHORT[s.id]||s.name)}</th>`).join('')}<th>Последний вход</th><th><i class="xbtn" hidden></i></th></tr></thead><tbody>${rows||'<tr><td colspan="9" class="mut">Пока никого</td></tr>'}</tbody></table></div>
-    <p class="note" style="margin:10px 0 0">Как добавить сотрудника: отправьте ему ссылку на систему → он нажимает «Запросить доступ» и регистрируется → заявка появляется вверху этой страницы. Закрытый доступ отключает человека сразу, даже если он сейчас в системе. Свою роль и свой доступ поменять нельзя — это защита от случайной блокировки.</p></section>
+    <p class="note" style="margin:10px 0 0">Как добавить сотрудника: кнопка «Добавить сотрудника» → логин, пароль и роль → «Создать». Отправьте сотруднику ссылку, логин и пароль — после первого входа он сможет сменить пароль сам. Закрытый доступ отключает человека сразу, даже если он сейчас в системе. Свою роль и свой доступ поменять нельзя — это защита от случайной блокировки.</p></section>
    <section class="panel"><div class="panel-h"><div><h2>Роли и права по умолчанию</h2><div class="note">просмотр — видит данные; правка — может добавлять, менять и удалять</div></div></div>${matrix}</section>`}
 
 async function upd(id,patch,ok){const {error}=await sb().from('profiles').update(patch).eq('id',id);if(error)throw error;if(ok)say(ok);await loadUsers()}
@@ -4726,6 +4753,30 @@ ACT.lvl=async el=>{const {id,sec}=el.dataset;const v=el.value;let r;
   if(!v)r=await sb().from('user_access').delete().eq('user_id',id).eq('section',sec);
   else r=await sb().from('user_access').upsert({user_id:id,section:sec,level:v},{onConflict:'user_id,section'});
   if(r.error)throw r.error;say(v?`«${secNm(sec)}»: ${LVL[v]}`:`«${secNm(sec)}»: как в роли`);await loadUsers()};
+const genPw=()=>{const a='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint8Array(10));let p='';for(const x of r)p+=a[x%a.length];return /\d/.test(p)?p:p.slice(0,9)+'7'};
+const credText=c=>`NEURO KIDS — доступ к финансовой системе\nСсылка: ${location.href.split('#')[0]}\nЛогин: ${c.login}\nПароль: ${c.pw}\n\nПосле входа смените пароль: внизу меню слева → «Сменить пароль».`;
+const sqlErr=e=>String(e&&e.message||e||'').replace(/^.*ERROR:\s*/,'');
+ACT.nuopen=()=>{NKS.addOpen=!NKS.addOpen;NKS.nuPw=NKS.addOpen?genPw():'';schedule()};
+ACT.nugen=()=>{const el=document.getElementById('nk-nu-pw');NKS.nuPw=genPw();if(el)el.value=NKS.nuPw};
+ACT.nusave=async b=>{const v=id=>(document.getElementById(id)||{}).value||'';const err=t=>{const e=document.getElementById('nk-nu-err');if(e)e.textContent=t};
+  const login=v('nk-nu-login').trim().toLowerCase(),pw=v('nk-nu-pw'),name=v('nk-nu-name').trim();
+  if(!name)return err('Впишите имя сотрудника');if(!/^[a-z0-9._@+\-]{2,}$/.test(login))return err('Логин — латинские буквы, цифры, точка, дефис; без пробелов');if(pw.length<8)return err('Пароль — не короче 8 символов');
+  b.disabled=true;const {error}=await sb().rpc('admin_create_user',{p_login:login,p_password:pw,p_full_name:name,p_position:v('nk-nu-pos').trim()||null,p_role:v('nk-nu-role')||'viewer',p_until:v('nk-nu-until')||null});b.disabled=false;
+  if(error)return err(sqlErr(error));NKS.cred={login,pw,name};NKS.addOpen=false;NKS.nuPw='';say('Сотрудник добавлен, доступ открыт');await loadUsers();window.scrollTo({top:0})};
+ACT.credclose=()=>{NKS.cred=null;schedule()};
+ACT.credcopy=async()=>{const t=credText(NKS.cred);try{await navigator.clipboard.writeText(t);say('Скопировано — вставьте в мессенджер')}catch(e){const r=document.createRange(),el=document.getElementById('nk-credtx');r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);say('Текст выделен — нажмите Ctrl+C')}};
+ACT.pwopen=b=>{NKS.pwFor=NKS.pwFor===b.dataset.id?null:b.dataset.id;NKS.pwDraft=NKS.pwFor?genPw():'';schedule()};
+ACT.pwgen=b=>{NKS.pwDraft=genPw();const el=document.getElementById('nk-pw-'+b.dataset.id);if(el)el.value=NKS.pwDraft};
+ACT.pwsave=async b=>{const id=b.dataset.id,el=document.getElementById('nk-pw-'+id),pw=el?el.value:'';if(pw.length<8)return say('Пароль — не короче 8 символов');
+  const u=NKS.users.find(x=>x.id===id);b.disabled=true;const {error}=await sb().rpc('admin_set_password',{p_user:id,p_password:pw});b.disabled=false;if(error)return say(sqlErr(error));
+  NKS.cred={login:NKB.loginOf(u&&u.email),pw,name:u&&u.full_name,reset:true};NKS.pwFor=null;NKS.pwDraft='';say('Пароль изменён');schedule();window.scrollTo({top:0})};
+ACT.mypw=()=>{let m=document.getElementById('nk-modal');if(!m){m=document.createElement('div');m.id='nk-modal';document.body.appendChild(m)}
+  m.innerHTML=`<div class="nk-card"><h1>Смена пароля</h1><p class="nk-sub">${H(NKB.me.full_name||'')} · логин ${H(NKB.loginOf(NKB.me.email))}</p><form id="nk-mpw"><label>Новый пароль (от 8 символов)<input name="a" type="password" minlength="8" required autocomplete="new-password"></label><label>Ещё раз<input name="b" type="password" minlength="8" required autocomplete="new-password"></label><button class="nk-btn">Сохранить</button><button type="button" class="nk-btn ghost" data-nkact="mpwclose">Отмена</button><div class="nk-msg"></div></form></div>`;m.hidden=false;
+  const f=document.getElementById('nk-mpw');setTimeout(()=>f.a.focus(),30);const msg=(t,bad)=>{const e=f.querySelector('.nk-msg');e.textContent=t;e.className='nk-msg'+(bad?' bad':'')};
+  f.onsubmit=async e=>{e.preventDefault();if(f.a.value!==f.b.value)return msg('Пароли не совпадают',true);const btn=f.querySelector('button');btn.disabled=true;
+    const {error}=await sb().auth.updateUser({password:f.a.value});btn.disabled=false;if(error)return msg(/different|same/i.test(error.message)?'Новый пароль должен отличаться от старого':error.message,true);
+    NKB.log('password_change','Сменил свой пароль');m.hidden=true;m.innerHTML='';say('Пароль изменён')}};
+ACT.mpwclose=()=>{const m=document.getElementById('nk-modal');if(m){m.hidden=true;m.innerHTML=''}};
 ACT.userlog=b=>{NKS.f={user:b.dataset.id,type:'',sec:'',from:'',to:'',q:''};st.tab='audit';NKS.lastTab=null;schedule();loadLog(true)};
 
 /* =====================================================================
@@ -4734,8 +4785,9 @@ ACT.userlog=b=>{NKS.f={user:b.dataset.id,type:'',sec:'',from:'',to:'',q:''};st.t
 const ACTN={create:['Создание','fact'],update:['Изменение','over'],delete:['Удаление','crit'],revert:['Откат','over'],import:['Импорт данных','over'],
   view:['Открыл раздел','plan'],open_card:['Открыл карточку','plan'],search:['Поиск','done'],login:['Вход','fact'],logout:['Выход','done'],signup:['Регистрация','plan'],
   access:['Доступы','crit'],denied:['Отключён','crit'],upload:['Загрузил файл','fact'],file_delete:['Удалил файл','crit'],file_restore:['Вернул файл','fact'],file_update:['Изменил файл','over'],
-  file_open:['Открыл файл','plan'],download:['Скачал','plan'],export:['Экспорт','plan'],error:['Ошибка','crit']};
-const TYPES={changes:['create','update','delete','revert','import'],moves:['view','open_card','search'],files:['upload','file_delete','file_restore','file_update','file_open','download','export'],access:['access','signup','login','logout','denied']};
+  file_open:['Открыл файл','plan'],download:['Скачал','plan'],export:['Экспорт','plan'],error:['Ошибка','crit'],
+  user_create:['Создан сотрудник','fact'],password_reset:['Сброс пароля','over'],password_change:['Сменил пароль','plan']};
+const TYPES={changes:['create','update','delete','revert','import'],moves:['view','open_card','search'],files:['upload','file_delete','file_restore','file_update','file_open','download','export'],access:['access','signup','login','logout','denied','user_create','password_reset','password_change']};
 const COLN={companies:'Компания',accounts:'Счёт',cats:'Статья ДДС',ops:'Операция',imports:'Выписка',clients:'Контрагент',invoices:'Документ',contracts:'Договор',loans:'Заём',rules:'Правило разноски',notes:'Заметка',requests:'Заявка на оплату',promises:'Обещание оплаты',
   cfg:'Настройки',plan:'Финмодель',comp:'Конкурент',services:'Услуга',citems:'Статья затрат',ccfg:'Настройки себестоимости',staff:'Сотрудник',payroll:'Зарплатный реестр',files:'Файл',profiles:'Пользователь',user_access:'Доступ к разделу'};
 const FN={name:'Название',amount:'Сумма',salary:'Оклад',status:'Статус',pos:'Должность',from:'Дата начала',to:'Дата окончания',price:'Цена',dur:'Длительность, мин',alloc:'Доли времени по услугам',hours:'Часы в месяц',rows:'Строки выписки',
@@ -4796,7 +4848,7 @@ function vJournal(){if(!NKB.me.is_admin)return `<section class="panel"><div clas
   const K=NKS.kpi||{};
   const uopts=(NKS.users||[]).map(u=>`<option value="${u.id}" ${f.user===u.id?'selected':''}>${H(u.full_name||u.email)}</option>`).join('');
   const rows=NKS.log.map(e=>{const a=ACTN[e.action]||[e.action,'done'];const op=NKS.open===e.id;
-    return `<tr class="click ${op?'nk-open':''}" data-nkact="lopen" data-id="${e.id}"><td class="mono" style="white-space:nowrap">${dt(e.at)}</td><td style="white-space:normal;min-width:150px"><b style="font-weight:600">${H(uName(e.user_id)||e.user_email||'система')}</b>${e.user_email&&uName(e.user_id)?`<div class="mut" style="font-size:12px">${H(e.user_email)}</div>`:''}</td>
+    return `<tr class="click ${op?'nk-open':''}" data-nkact="lopen" data-id="${e.id}"><td class="mono" style="white-space:nowrap">${dt(e.at)}</td><td style="white-space:normal;min-width:150px"><b style="font-weight:600">${H(uName(e.user_id)||NKB.loginOf(e.user_email)||'система')}</b>${e.user_email&&uName(e.user_id)?`<div class="mut" style="font-size:12px">${H(NKB.loginOf(e.user_email))}</div>`:''}</td>
       <td><span class="pill ${a[1]}">${H(a[0])}</span></td><td style="white-space:normal">${e.action==='view'?H(e.summary||''):e.collection?evObject(e):H(e.summary||'')}${e.action==='update'||e.action==='access'?chKeys(e):''}${e.section&&e.collection!=='user_access'?`<div class="mut" style="font-size:12px">${H(secNm(e.section))}</div>`:''}</td></tr>`+
       (op?`<tr class="nk-det"><td colspan="4">${evDetail(e)}</td></tr>`:'')}).join('');
   return `<section class="panel"><div class="panel-h"><div><h2>Сейчас в системе · ${onIds.length}</h2><div class="note">кто открыт прямо сейчас и в каком разделе</div></div></div><div class="au-online">${online}</div>
